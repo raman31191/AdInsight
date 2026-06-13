@@ -349,19 +349,3 @@ vite ^5.2.0                    # Build tool and dev server
 
 ---
 
-## Interview Talking Points
-
-**Q: Why Supabase over a traditional database + WebSocket server?**
-> Supabase provides managed PostgreSQL with a built-in Realtime engine backed by PostgreSQL's logical replication. This removes the need to build and operate a WebSocket server. In production at scale, this pattern maps to Cloud Spanner or BigQuery with Pub/Sub handling the event stream.
-
-**Q: How does the dashboard update without polling?**
-> Supabase Realtime uses PostgreSQL's WAL (Write-Ahead Log) to detect row-level changes. These are streamed to connected clients over a persistent WebSocket. The React client registers a subscription channel — when an INSERT fires in the database, all subscribers receive the event payload immediately, with zero polling overhead.
-
-**Q: How did you design the alert system to avoid noise?**
-> Each alert rule has a 5-minute cooldown enforced by an in-memory dictionary keyed on `(campaign_name, alert_type)`. The thresholds are calibrated to real break-even points — for example, ROAS below 2.0x is the typical e-commerce break-even, not an arbitrary number. The 90% budget threshold fires once per cycle, not continuously.
-
-**Q: How would you scale this for a real production workload?**
-> Three changes: (1) Replace the Python generator with Apache Kafka or Google Pub/Sub for high-throughput ingestion. (2) Add table partitioning on `recorded_at` — partition `ad_metrics` by day to keep query performance stable as volume grows. (3) Move analytical aggregations to BigQuery or a materialized view layer, keeping PostgreSQL for operational queries only.
-
-**Q: What does the `ctr` computed column give you that application-level calculation wouldn't?**
-> Consistency and correctness. If CTR were calculated in the application, any bug or rounding difference across multiple services would produce inconsistent values in the database. A `GENERATED ALWAYS AS` stored column means the database owns the calculation — one source of truth, enforced at the storage layer.
